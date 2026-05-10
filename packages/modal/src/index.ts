@@ -32,6 +32,7 @@ export interface ModalConfig {
 interface ModalInternalConfig extends ModalConfig {
   _client: ModalClient;
   _appPromise: Promise<App>;
+  _defaultImagePromise: Promise<Image>;
 }
 
 
@@ -73,7 +74,7 @@ const _modal = defineProvider<ModalSandbox, ModalInternalConfig>({
               image = client.images.fromRegistry(sourceId);
             }
           } else {
-            image = client.images.fromRegistry(DEFAULT_IMAGE);
+            image = await config._defaultImagePromise;
           }
 
           const sandboxOptions: SandboxCreateV2Params = {
@@ -262,11 +263,13 @@ export function modal(config: ModalConfig = {}): ReturnType<typeof _modal> {
   const appName = config.appName ?? DEFAULT_APP_NAME;
   const client = new ModalClient({ tokenId: config.tokenId, tokenSecret: config.tokenSecret, environment: config.environment });
   const appPromise = client.apps.fromName(appName, { createIfMissing: true });
+  const defaultImagePromise = appPromise.then((app: App) => client.images.fromRegistry(DEFAULT_IMAGE).build(app));
 
   return _modal({
     ...config,
     appName,
     _client: client,
     _appPromise: appPromise,
+    _defaultImagePromise: defaultImagePromise,
   });
 }
