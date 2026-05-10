@@ -7,7 +7,7 @@ import { defineProvider, escapeShellArg } from '@computesdk/provider';
 import type { CommandResult, SandboxInfo, CreateSandboxOptions, FileEntry, RunCommandOptions } from '@computesdk/provider';
 
 import { ModalClient } from 'modal';
-import type { Sandbox, App, Image, SandboxCreateParams } from 'modal';
+import type { Sandbox, App, Image, SandboxCreateV2Params } from 'modal';
 
 type ModalNativeSandbox = Sandbox;
 
@@ -76,20 +76,20 @@ const _modal = defineProvider<ModalSandbox, ModalInternalConfig>({
             image = client.images.fromRegistry(DEFAULT_IMAGE);
           }
 
-          const sandboxOptions: SandboxCreateParams = {
-            ...(providerOptions as Partial<SandboxCreateParams>),
+          const sandboxOptions: SandboxCreateV2Params = {
+            ...(providerOptions as Partial<SandboxCreateV2Params>),
           };
 
           const ports = optPorts ?? config.ports;
           if (ports && ports.length > 0) sandboxOptions.unencryptedPorts = ports;
 
           const timeout = optTimeout ?? config.timeout;
-          if (timeout) sandboxOptions.timeoutMs = timeout;
+          if (timeout) sandboxOptions.timeout = Math.ceil(timeout / 1000);
 
           if (envs && Object.keys(envs).length > 0) sandboxOptions.env = envs;
           if (name) sandboxOptions.name = name;
 
-          const sandbox = await client.sandboxes.create(app, image, sandboxOptions);
+          const sandbox = await client.sandboxes.experimentalCreate(app, image, ['sleep', 'infinity'], sandboxOptions);
           const sandboxId = sandbox.sandboxId;
 
           return { sandbox: { sandbox, sandboxId }, sandboxId };
